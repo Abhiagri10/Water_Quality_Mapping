@@ -7,7 +7,7 @@
 # ============================================================
 # 1. Git Bash installed (https://git-scm.com/downloads)
 # 2. A GitHub account: github.com/abshirodkar15
-# 3. The 10 files downloaded from Claude:
+# 3. The repository files needed:
 #      README.md, .gitignore
 #      gee_scripts/Optically_Active_WQPs/   (5 x .js)
 #      gee_scripts/Optically_Inactive_WQPs/ (3 x .js)
@@ -38,11 +38,11 @@ mkdir -p gee_scripts/Optically_Inactive_WQPs
 # ============================================================
 # STEP 3 — Place the downloaded files into the folder
 # ============================================================
-# Manually move / copy the files Claude generated:
+# Manually move / copy the repository files:
 #
 #   Water_Quality_WQM/
-#   ├── README.md                         ← from Claude output
-#   ├── .gitignore                        ← from Claude output
+#   ├── README.md
+#   ├── .gitignore
 #   └── gee_scripts/
 #       ├── Optically_Active_WQPs/
 #       │   ├── Turbidity_Mapping_v1.js
