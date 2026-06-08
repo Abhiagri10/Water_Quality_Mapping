@@ -9,11 +9,11 @@ This repository contains the Google Earth Engine (GEE) JavaScript mapping script
 ## Repository Structure
 
 ```
-Water_Quality_WQM/
+Water_Quality_Mapping/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
-└── gee_scripts/
+└── GEE_scripts/
     ├── Optically_Active_WQPs/
     │   ├── Turbidity_Mapping_v1.js
     │   ├── EC_Mapping_v1.js
