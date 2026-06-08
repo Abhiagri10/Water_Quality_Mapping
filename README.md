@@ -162,7 +162,7 @@ If you use this code in your research, please cite the thesis and link to this r
 
 ```
 Shirodkar, A. (2025). Near Real-Time Water Quality Monitoring with High-Resolution
-Satellite Images and Machine Learning Methods [Master's thesis]. [University Name].
+Satellite Images and Machine Learning Methods [Master's Research Project]. Asian Institute of Technology.
 ```
 
 **BibTeX:**
@@ -172,9 +172,9 @@ Satellite Images and Machine Learning Methods [Master's thesis]. [University Nam
   author  = {Shirodkar, Abhishek},
   title   = {Near Real-Time Water Quality Monitoring with High-Resolution
              Satellite Images and Machine Learning Methods},
-  school  = {[University Name]},
+  school  = {Asian Institute of Technology},
   year    = {2025},
-  type    = {Master's thesis}
+  type    = {Master's Research Project}
 }
 ```
 
@@ -196,4 +196,4 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ## Acknowledgments
 
-This work was conducted at [University Name] under the supervision of [Supervisor Name]. Landsat imagery is provided by the United States Geological Survey (USGS) through Google Earth Engine. GEE script patterns draw on examples from the [GEE Community](https://github.com/gee-community) and [SERVIR](https://github.com/SERVIR).
+This work was conducted at Asian Institute of Technology under the supervision of [Dr. Mohana Sundaram Shanmugam](https://ait.ac.th/people/dr-mohana-sundaram-shanmugam/). Landsat imagery is provided by the United States Geological Survey (USGS) through Google Earth Engine. GEE script patterns draw on examples from the [GEE Community](https://github.com/gee-community) and [SERVIR](https://github.com/SERVIR).
