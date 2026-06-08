@@ -140,7 +140,7 @@ Use `prediction_csvs/` for the thesis-verified values.
 
 Full methodology is described in the associated thesis:
 
-> Shirodkar, A. (2025). *Near Real-Time Water Quality Monitoring with High-Resolution Satellite Images and Machine Learning Methods*. [University Name].
+> Shirodkar, A. (2025). *Near Real-Time Water Quality Monitoring with High-Resolution Satellite Images and Machine Learning Methods*. Asian Institute of Technology.
 
 **Data:** Landsat 8/9 Collection 2 Tier 1 Surface Reflectance, scale factor 0.0000275, offset -0.2. No additional atmospheric correction beyond the C02 SR product.
 
