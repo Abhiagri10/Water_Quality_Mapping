@@ -13,7 +13,7 @@
 
 This repository provides a reproducible framework for estimating water quality parameters from Landsat 8/9 surface reflectance imagery using Random Forest regression. The workflow was developed and validated in Pathum Thani Province, Thailand, along the Chao Phraya River and Khlong Nueng canal, using 22 acquisition dates (June 2024 to January 2025) and 11 in-situ monitoring stations across three zones. The code transfers directly to other study areas: replace the GEE asset path, update the sampling coordinates and acquisition dates, and the full pipeline runs without structural changes.
 
-Spatial prediction and model development are kept separate. GEE JavaScript scripts handle image access, spectral index computation, and monthly spatial prediction. Python/Colab notebooks cover model training, metric reporting, and diagnostic scatter plots for EC, Salinity, and TDS. This separation follows the pattern used by SERVIR and the GEE Community and keeps each component independently reusable. The repository also includes GEE mapping scripts for three optically inactive parameters (DO, TP, pH) trained with a hybrid spectral and in-situ feature approach.
+Spatial prediction and model development are kept separate. GEE JavaScript scripts handle image access, spectral index computation, and monthly spatial prediction. Python/Colab notebooks are scoped to model training, metric reporting, and diagnostic scatter plots — they do not produce spatial maps. This separation follows the pattern used by SERVIR and the GEE Community and keeps each component independently reusable. The repository also includes GEE mapping scripts for three optically inactive parameters (DO, TP, pH) trained with a hybrid spectral and in-situ feature approach.
 
 ---
 
@@ -38,15 +38,6 @@ Water_Quality_Mapping/
 │       ├── TP_Mapping_v1.js
 │       └── pH_Mapping_v1.js
 │
-├── Machine_Learning_Water_Quality/                     # ML training, metrics, and validation
-│   └── Random_Forest/
-│       └── Optically_Active_WQPs/
-│           ├── Turbidity_ML_RF_v1.js
-│           ├── EC_ML_RF_v1.js
-│           ├── Salinity_ML_RF_v1.js
-│           ├── TDS_ML_RF_v1.js
-│           └── Temperature_ML_RF_v1.js
-│
 ├── Python_ML_Models/                                   # Python model training notebooks
 │   ├── Optically_Active_WQPs/
 │   │   ├── EC_RF_Model_v1.ipynb
@@ -64,9 +55,7 @@ Water_Quality_Mapping/
 
 **GEE_Scripts/** contains spatial mapping scripts. Each script loads satellite imagery, trains the RF model, runs a monthly prediction pipeline, and visualises results on the GEE map. Export blocks (`Export.image.toDrive()`) are present and commented out by default. Uncomment in the Code Editor when you need GeoTIFF outputs.
 
-**Machine_Learning_Water_Quality/** contains ML-only scripts for the five optically active parameters. These load in-situ data from GEE FeatureCollection assets, train the model, and print performance metrics (MAE, RMSE, R²) as expandable Console dropdowns alongside observed-vs-predicted scatter plots. There is no export and no map layer rendering.
-
-**Python_ML_Models/** contains eight Random Forest training notebooks, one per water quality parameter, split into `Optically_Active_WQPs/` and `Optically_Inactive_WQPs/`. All eight follow the same structure: data loading, indices, split, standardization, model training, metrics, and a 1:1 validation plot.
+**Python_ML_Models/** contains eight Random Forest training notebooks, one per water quality parameter, split into `Optically_Active_WQPs/` and `Optically_Inactive_WQPs/`. All eight follow the same structure: data loading, indices, split, standardization, model training, metrics, and a 1:1 validation plot. These notebooks are scoped to model training and evaluation only; spatial map generation is handled by the GEE scripts.
 
 ---
 
@@ -81,8 +70,6 @@ https://code.earthengine.google.com/?accept_repo=users/abshirodkar15/Water_Quali
 ```
 
 Open any script under `GEE_Scripts/` and click **Run**. The model trains, evaluates on all three data splits, and displays monthly prediction layers on the map.
-
-The ML-only scripts in `Machine_Learning_Water_Quality/` are not hosted in the GEE Code Editor. Copy the script content from GitHub into a new GEE file to use them.
 
 **Adapting to a new study area:**
 
@@ -155,6 +142,36 @@ All eight notebooks follow the same structure, based on `05APR_RF_EC_Fixed.ipynb
 The three notebooks in `Optically_Inactive_WQPs/` (DO, pH, TP) are structural skeletons: the spectral indices and in-situ asset names are marked with `# TODO` and require the hybrid in-situ TDS/Turbidity feature design from the thesis before they match the corresponding GEE mapping scripts.
 
 > Abhishek Shirodkar (2025). Near Real-Time Water Quality Monitoring with High-Resolution Satellite Images and Machine Learning Methods. Master's Thesis, Asian Institute of Technology.
+
+---
+
+## Spatial Mapping in Python (Folium + geemap)
+
+The notebooks above cover model training only and do not render spatial maps. For interactive or near real-time map outputs within Google Colab, combine the trained model with **Folium** and **geemap**:
+
+- **geemap** wraps the Earth Engine Python API and renders GEE image layers directly in a `folium.Map`, replicating the Code Editor visualisation pipeline inside a notebook.
+- **Water body delineation** can use Sentinel-1 SAR backscatter (VV/VH polarisation) alongside Landsat NDWI. The SAR layer maintains coverage under cloud conditions that obscure optical imagery.
+- **Folium Realtime plugin** (`folium.plugins.Realtime`) polls a GeoJSON endpoint at a configurable interval, enabling live overlays of model predictions or sensor data on a rendered map.
+
+Install in Colab:
+
+```bash
+pip install geemap folium
+```
+
+Minimal example:
+
+```python
+import ee, geemap
+ee.Initialize(project='your-project-id')
+
+m = geemap.Map(center=[14.02, 100.62], zoom=12)
+ndwi = image.normalizedDifference(['SR_B3', 'SR_B5'])
+m.addLayer(ndwi, {'min': -1, 'max': 1, 'palette': ['brown', 'white', 'blue']}, 'NDWI')
+m
+```
+
+For live updates, pass a GeoJSON feed URL and an `interval` (milliseconds) to `folium.plugins.Realtime`. Set the interval to match your data refresh frequency.
 
 ---
 
