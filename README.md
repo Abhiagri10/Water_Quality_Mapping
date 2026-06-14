@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Google%20Earth%20Engine-green)](https://earthengine.google.com/)
-[![Python 3](https://img.shields.io/badge/Python-3.x-blue)](Python_Colab_Scripts/)
+[![Python 3](https://img.shields.io/badge/Python-3.x-blue)](Python_ML_Models/)
 [![GEE Repo](https://img.shields.io/badge/GEE%20Repo-accept%20link-orange)](https://code.earthengine.google.com/?accept_repo=users/abshirodkar15/Water_Quality_Mapping)
 
 ---
@@ -47,10 +47,17 @@ Water_Quality_Mapping/
 │           ├── TDS_ML_RF_v1.js
 │           └── Temperature_ML_RF_v1.js
 │
-├── Python_Colab_Scripts/                               # Python notebooks for EC, Salinity, TDS
-│   ├── EC_RF_v1.ipynb
-│   ├── Salinity_RF_v1.ipynb
-│   └── TDS_RF_v1.ipynb
+├── Python_ML_Models/                                   # Python model training notebooks
+│   ├── Optically_Active_WQPs/
+│   │   ├── EC_RF_Model_v1.ipynb
+│   │   ├── Salinity_RF_Model_v1.ipynb
+│   │   ├── TDS_RF_Model_v1.ipynb
+│   │   ├── Turbidity_RF_Model_v1.ipynb
+│   │   └── Temperature_RF_Model_v1.ipynb
+│   └── Optically_Inactive_WQPs/
+│       ├── DO_RF_Model_v1.ipynb
+│       ├── pH_RF_Model_v1.ipynb
+│       └── TP_RF_Model_v1.ipynb
 │
 └── prediction_csvs/                                    # [Planned] 24 ground-truth prediction CSVs
 ```
@@ -59,7 +66,7 @@ Water_Quality_Mapping/
 
 **Machine_Learning_Water_Quality/** contains ML-only scripts for the five optically active parameters. These load in-situ data from GEE FeatureCollection assets, train the model, and print performance metrics (MAE, RMSE, R²) as expandable Console dropdowns alongside observed-vs-predicted scatter plots. There is no export and no map layer rendering.
 
-**Python_Colab_Scripts/** contains Python notebooks for EC, Salinity, and TDS. These use the same split logic and z-score standardization as the GEE scripts and output 1:1 scatter plots.
+**Python_ML_Models/** contains eight Random Forest training notebooks, one per water quality parameter, split into `Optically_Active_WQPs/` and `Optically_Inactive_WQPs/`. All eight follow the same structure: data loading, indices, split, standardization, model training, metrics, and a 1:1 validation plot.
 
 ---
 
@@ -88,7 +95,7 @@ The ML-only scripts in `Machine_Learning_Water_Quality/` are not hosted in the G
 
 ### (b) Google Colab / Python
 
-Python notebooks for EC, Salinity, and TDS are in `Python_Colab_Scripts/`. Install dependencies before running:
+All eight notebooks are in `Python_ML_Models/`. Install dependencies before running:
 
 ```bash
 pip install -r requirements.txt
@@ -133,6 +140,21 @@ Temperature performs poorly on the test set (R² = 0.34), which is consistent wi
 \* DO, TP, and pH use spectral indices alongside in-situ TDS and Turbidity as auxiliary training features. During image-level spatial prediction, training-set mean values substitute for the auxiliary features. This is the validated design described in the thesis.
 
 Use `prediction_csvs/` for the thesis-verified values.
+
+---
+
+## Python ML Model Training
+
+`Python_ML_Models/` contains eight Random Forest training notebooks, split into two subfolders:
+
+- `Optically_Active_WQPs/`: EC, Salinity, TDS, Turbidity, Temperature
+- `Optically_Inactive_WQPs/`: DO, pH, TP
+
+All eight notebooks follow the same structure, based on `05APR_RF_EC_Fixed.ipynb`: Earth Engine setup, study area and sampling points, spectral index calculation, train/validation/test split with z-score standardization, Random Forest training (`smileRandomForest`, `seed=42`), and performance metrics. Each notebook runs in Google Colab under project `ee-abshirodkar15`, prints train/validation/test MAE, RMSE, MAPE, RMSPE, and R², and saves one 1:1 observed-vs-predicted scatter plot to Google Drive.
+
+The three notebooks in `Optically_Inactive_WQPs/` (DO, pH, TP) are structural skeletons: the spectral indices and in-situ asset names are marked with `# TODO` and require the hybrid in-situ TDS/Turbidity feature design from the thesis before they match the corresponding GEE mapping scripts.
+
+> Abhishek Shirodkar (2025). Near Real-Time Water Quality Monitoring with High-Resolution Satellite Images and Machine Learning Methods. Master's Thesis, Asian Institute of Technology.
 
 ---
 
