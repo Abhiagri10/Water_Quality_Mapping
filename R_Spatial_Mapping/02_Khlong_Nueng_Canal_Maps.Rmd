@@ -1,0 +1,511 @@
+---
+title: >
+  Near Real-Time Canal WQ Monitoring — Khlong Nueng Spatial Maps
+subtitle: >
+  R Spatial Visualization Pipeline: Landsat 8/9 ML-Predicted WQ Parameter Maps
+  for Khlong Nueng Canal (Narrow-Geometry Optimized Rendering)
+author:
+  - name: "Abhishek Babuso Shirodkar"
+    affiliation: "Water Engineering and Management, Faculty of Civil and
+                  Environmental Engineering, Asian Institute of Technology (AIT),
+                  Pathum Thani 12120, Thailand"
+    email: "st124278@ait.asia"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    highlight: tango
+    df_print: paged
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+---
+
+<!--
+================================================================================
+  STUDY REFERENCE
+    Shirodkar, A. B., Shanmugam, M., Shrestha, S., Tangdamrongsub, N., &
+    Puno, R. (2025). Near real-time water quality monitoring of tropical canal
+    networks using Landsat 8/9 surface reflectance and machine learning.
+    Remote Sensing of Environment. https://doi.org/[assigned upon acceptance]
+
+  PURPOSE
+    Renders publication-quality spatial WQ maps for Khlong Nueng canal,
+    Pathum Thani Province, Thailand. This script applies a wider horizontal
+    buffer (x multiplier = 3.0) relative to 01_All_Network_Maps.Rmd because
+    Khlong Nueng is a narrow (~15 m wide) channel whose Landsat 30 m pixels
+    extend substantially into adjacent agricultural land; additional lateral
+    context reduces visual distortion and aids compliance interpretation.
+
+  WORKFLOW POSITION
+    GEE_Scripts/ (ML prediction → GeoTIFF monthly average export)
+          ↓
+    02_Khlong_Nueng_Maps.Rmd  [this script]
+          ↓
+    Publication-quality Khlong Nueng spatial WQ maps (PNG/PDF)
+
+  INPUTS
+    GeoTIFF files named:  Khlong_Nueng_{Parameter}_{YYYY-MM}.tif
+    exported from GEE using the parameter-specific R+F hybrid model scripts.
+    Directory paths are set in config.R.
+
+  OUTPUTS
+    One PNG/PDF per parameter per month in OUTPUT_ROOT/.
+
+  REPOSITORY
+    https://github.com/Abhiagri10/Water_Quality_Mapping
+
+  DEPENDENCIES
+    R >= 4.2.0 | see 00_shared_functions.R for full package list
+    Package versions recorded in session_info chunk at end of this document.
+================================================================================
+-->
+
+---
+
+## 1  Setup and Configuration
+
+### 1.1  Load shared utilities and user configuration
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width  = 11,
+  fig.height = 8,
+  dpi        = 150
+)
+```
+
+```{r load_config_and_functions}
+config_path <- "config.R"
+if (!file.exists(config_path)) {
+  stop(
+    "config.R not found in the working directory.\n",
+    "Copy config_template.R to config.R and fill in your local data paths.\n",
+    "Working directory: ", getwd()
+  )
+}
+source(config_path)
+source("00_shared_functions.R")
+```
+
+### 1.2  Build parameter settings
+
+```{r parameter_settings}
+param_settings <- build_parameter_settings()
+
+cat("Parameters configured:", paste(names(param_settings), collapse = ", "), "\n")
+cat("Data root:   ", DATA_ROOT,   "\n")
+cat("Output root: ", OUTPUT_ROOT, "\n")
+```
+
+---
+
+## 2  Khlong Nueng Map Creation Function
+
+`create_khlong_nueng_map()` wraps the core map assembly with parameters
+tuned specifically for the narrow Khlong Nueng canal geometry:
+
+- **Wider x-buffer** (3.0×): compensates for the narrow E-W footprint and
+  ensures meaningful lateral basemap context appears on either side of the canal.
+- **Taller y-buffer** (1.2×): preserves N-S context for the elongated canal reach.
+- **Smaller north arrow** (0.7–1.5 cm, scaled dynamically): avoids overlap with
+  the narrow data stripe.
+- **Legend position** shifted left to prevent occlusion of the narrow canal stripe.
+
+```{r khlong_nueng_map_function}
+#' Create a publication-quality WQ map for Khlong Nueng canal.
+#'
+#' Applies narrow-canal-specific buffer and legend settings on top of the
+#' standard map assembly. Input files must match the Khlong Nueng naming
+#' convention (parsed via \code{parse_khlong_filename()}).
+#'
+#' @param raster_data  Named list with elements \code{raster} (SpatRaster),
+#'   \code{info} (output of \code{parse_khlong_filename()}), and
+#'   \code{file_path} (character).
+#' @param parameter_name Character. WQ parameter label.
+#' @param unit      Character. Unit string for the colour-bar legend.
+#' @param min_val   Numeric. Lower clamp value for the colour ramp.
+#' @param max_val   Numeric. Upper clamp value for the colour ramp.
+#' @param color_palette Character vector of colour stops.
+#' @param reverse_colors Logical. Reverse the palette. Default FALSE.
+#' @param verbose   Logical. Print diagnostics. Default FALSE.
+#' @return A ggplot object, or NULL on failure.
+create_khlong_nueng_map <- function(raster_data,
+                                    parameter_name,
+                                    unit,
+                                    min_val,
+                                    max_val,
+                                    color_palette  = c("blue","cyan","green",
+                                                       "yellow","orange","red",
+                                                       "magenta"),
+                                    reverse_colors = FALSE,
+                                    verbose        = FALSE) {
+
+  # ── Input validation ────────────────────────────────────────────────────────
+  if (is.null(raster_data) ||
+      !inherits(raster_data$raster, "SpatRaster")) {
+    message(parameter_name, ": invalid raster_data supplied — skipping.")
+    return(NULL)
+  }
+
+  if (!grepl("Khlong_Nueng", raster_data$info$water_body, fixed = TRUE)) {
+    warning("create_khlong_nueng_map: file does not appear to be from Khlong Nueng.")
+  }
+
+  raster_df <- as.data.frame(raster_data$raster, xy = TRUE) |> stats::na.omit()
+  if (nrow(raster_df) == 0L) {
+    message(parameter_name, ": raster is entirely NA — skipping.")
+    return(NULL)
+  }
+  names(raster_df)[3L] <- parameter_name
+
+  # ── Spatial geometry ────────────────────────────────────────────────────────
+  shape_info <- analyze_raster_shape(raster_data$raster)
+  if (is.na(shape_info$width) || shape_info$width <= 0) {
+    message(parameter_name, ": invalid raster dimensions — skipping.")
+    return(NULL)
+  }
+
+  if (verbose) {
+    cat(sprintf("Khlong Nueng %s: %d data points; aspect ratio %.2f\n",
+                parameter_name, nrow(raster_df), shape_info$aspect_ratio))
+  }
+
+  x_range <- range(raster_df$x, na.rm = TRUE)
+  y_range <- range(raster_df$y, na.rm = TRUE)
+  dw      <- x_range[2L] - x_range[1L]
+  dh      <- y_range[2L] - y_range[1L]
+
+  # Narrow-canal buffer: large x-multiplier to add lateral context
+  buf    <- 0.2
+  xm     <- 3.0
+  ym     <- 1.2
+
+  xmin_buf <- x_range[1L] - buf * xm * dw
+  xmax_buf <- x_range[2L] + buf * xm * dw
+  ymin_buf <- y_range[1L] - buf * ym * dh
+  ymax_buf <- y_range[2L] + buf * ym * dh
+
+  if (xmin_buf >= xmax_buf || ymin_buf >= ymax_buf) {
+    message(parameter_name, ": bounding box collapsed after buffering — skipping.")
+    return(NULL)
+  }
+
+  # ── CRS and bounding box ────────────────────────────────────────────────────
+  crs_str  <- tryCatch(terra::crs(raster_data$raster), error = function(e) "")
+  safe_crs <- tryCatch(
+    sf::st_crs(if (nchar(crs_str) > 0L) crs_str else "EPSG:4326"),
+    error = function(e) sf::st_crs(4326L)
+  )
+
+  bbox     <- sf::st_bbox(c(xmin = xmin_buf, ymin = ymin_buf,
+                             xmax = xmax_buf, ymax = ymax_buf),
+                           crs = safe_crs)
+  bbox_sfc <- tryCatch(sf::st_as_sfc(bbox), error = function(e) NULL)
+
+  # ── Basemap tiles ───────────────────────────────────────────────────────────
+  tiles <- fetch_basemap_tiles(bbox_sfc)
+
+  # ── Colour ramp ─────────────────────────────────────────────────────────────
+  ramp <- colorRampPalette(color_palette)(100L)
+  if (reverse_colors) ramp <- rev(ramp)
+
+  # ── Dynamic north-arrow size (proportional to visible diagonal) ─────────────
+  diag_visible <- sqrt((xmax_buf - xmin_buf)^2 + (ymax_buf - ymin_buf)^2)
+  arrow_cm     <- max(0.7, min(1.5, diag_visible * 5e-5))
+
+  # ── Title and subtitle ───────────────────────────────────────────────────────
+  subtitle_text <- if (parameter_name == "pH") {
+    paste0("pH \u2014 ", raster_data$info$date_string)
+  } else {
+    unit_str <- trimws(unit)
+    if (nchar(unit_str) > 0L) {
+      paste0(parameter_name, " (", unit_str, ") \u2014 ",
+             raster_data$info$date_string)
+    } else {
+      paste0(parameter_name, " \u2014 ", raster_data$info$date_string)
+    }
+  }
+
+  # ── ggplot assembly ─────────────────────────────────────────────────────────
+  map <- ggplot2::ggplot() +
+    { if (!is.null(tiles))
+        tidyterra::geom_spatraster_rgb(data = tiles, alpha = 0.95)
+      else
+        ggplot2::theme(
+          panel.background = ggplot2::element_rect(fill = "grey92")
+        )
+    } +
+    ggplot2::geom_tile(
+      data = raster_df,
+      ggplot2::aes(x = x, y = y, fill = !!rlang::sym(parameter_name)),
+      alpha = 0.8
+    ) +
+    ggplot2::scale_fill_gradientn(
+      colors  = ramp,
+      limits  = c(min_val, max_val),
+      oob     = scales::squish,
+      name    = NULL,
+      breaks  = c(min_val, max_val),
+      labels  = c(paste("Low:", min_val), paste("High:", max_val)),
+      guide   = ggplot2::guide_colorbar(
+        direction      = "vertical",
+        barheight      = ggplot2::unit(1.5, "cm"),
+        barwidth       = ggplot2::unit(0.3, "cm"),
+        label.position = "left",
+        label.hjust    = 1,
+        ticks          = TRUE,
+        nbin           = 10L
+      )
+    ) +
+    ggspatial::annotation_north_arrow(
+      location    = "tr",
+      which_north = "grid",
+      pad_x  = ggplot2::unit(0.5, "cm"),
+      pad_y  = ggplot2::unit(0.5, "cm"),
+      style  = ggspatial::north_arrow_fancy_orienteering(
+        fill     = c("white","black"),
+        line_col = "black",
+        text_col = "black"
+      ),
+      height = ggplot2::unit(arrow_cm, "cm"),
+      width  = ggplot2::unit(arrow_cm, "cm")
+    ) +
+    ggspatial::annotation_scale(
+      location      = "br",
+      width_hint    = 0.20,
+      style         = "bar",
+      text_cex      = 0.9,
+      line_width    = 0.8,
+      pad_x         = ggplot2::unit(0.4, "cm"),
+      pad_y         = ggplot2::unit(0.15, "cm"),
+      bar_cols      = c("black","white"),
+      unit_category = "metric"
+    ) +
+    ggplot2::labs(
+      title    = "**Khlong Nueng**",
+      subtitle = subtitle_text
+    ) +
+    ggplot2::coord_sf(
+      xlim   = c(xmin_buf, xmax_buf),
+      ylim   = c(ymin_buf, ymax_buf),
+      expand = FALSE,
+      crs    = safe_crs
+    ) +
+    ggplot2::theme(
+      panel.grid        = ggplot2::element_blank(),
+      axis.title        = ggplot2::element_blank(),
+      axis.text         = ggplot2::element_blank(),
+      axis.ticks        = ggplot2::element_blank(),
+      plot.title        = ggtext::element_markdown(
+                            size = 17, hjust = 0.5, margin = ggplot2::margin(b = 6)
+                          ),
+      plot.subtitle     = ggplot2::element_text(size = 15, hjust = 0.5),
+      legend.title      = ggplot2::element_blank(),
+      legend.text       = ggplot2::element_text(size = 14),
+      # Legend shifted leftward to avoid overlapping the narrow canal stripe
+      legend.position   = c(-10.2, 2.0),
+      legend.justification = c(0.85, 0.5),
+      legend.background = ggplot2::element_rect(
+                            fill  = scales::alpha("white", 0.7),
+                            color = NA
+                          ),
+      legend.key.height = ggplot2::unit(1.5, "cm"),
+      legend.key.width  = ggplot2::unit(0.3, "cm"),
+      legend.margin     = ggplot2::margin(1, 1, 1, 1),
+      plot.margin       = ggplot2::margin(10, 10, 10, 10),
+      panel.background  = ggplot2::element_rect(fill = NA),
+      panel.border      = ggplot2::element_rect(
+                            color = "black", fill = NA, linewidth = 0.5
+                          )
+    )
+
+  map
+}
+```
+
+---
+
+## 3  Workflow Functions
+
+### 3.1  Preview a single Khlong Nueng file
+
+```{r single_file_preview_function}
+#' Load and render one Khlong Nueng GeoTIFF as a WQ map.
+#'
+#' @param parameter_name Character. One of the names in \code{param_settings}.
+#' @param file_index     Integer. Position in the sorted file list. Default 1.
+#' @param verbose        Logical. Print file list and diagnostics. Default TRUE.
+#' @return A ggplot object, or NULL.
+preview_khlong_parameter <- function(parameter_name, file_index = 1L,
+                                      verbose = TRUE) {
+  s <- param_settings[[parameter_name]]
+  if (is.null(s)) {
+    message("preview_khlong_parameter: '", parameter_name, "' not in settings.")
+    return(NULL)
+  }
+
+  # Filter to Khlong Nueng files only
+  files <- list_available_files(parameter_name, s,
+                                 water_body = "Khlong_Nueng",
+                                 verbose = verbose)
+  if (length(files) == 0L) return(NULL)
+
+  fi <- max(1L, min(file_index, length(files)))
+  if (fi != file_index)
+    message("File index adjusted to ", fi, " (valid range 1–", length(files), ").")
+
+  rinfo <- parse_khlong_filename(files[fi])
+  if (is.null(rinfo)) return(NULL)
+
+  r <- tryCatch(terra::rast(files[fi]), error = function(e) {
+    message("Error loading raster: ", e$message); NULL
+  })
+  if (is.null(r)) return(NULL)
+
+  rdata <- list(raster = r, info = rinfo, file_path = files[fi])
+
+  create_khlong_nueng_map(
+    raster_data    = rdata,
+    parameter_name = parameter_name,
+    unit           = s$unit,
+    min_val        = s$min_val,
+    max_val        = s$max_val,
+    color_palette  = s$color_palette,
+    reverse_colors = s$reverse_colors,
+    verbose        = verbose
+  )
+}
+```
+
+### 3.2  Batch-render all Khlong Nueng files for a parameter
+
+```{r batch_render_function}
+#' Render and optionally save all Khlong Nueng maps for one parameter.
+#'
+#' @param parameter_name Character. Parameter to process.
+#' @param save_maps      Logical. Save PNG/PDF files to disk. Default FALSE.
+#' @param verbose        Logical. Print per-file progress. Default TRUE.
+#' @return Named list of ggplot objects (invisibly).
+batch_render_khlong_parameter <- function(parameter_name, save_maps = FALSE,
+                                           verbose = TRUE) {
+  s <- param_settings[[parameter_name]]
+  if (is.null(s)) {
+    message("batch_render_khlong_parameter: '", parameter_name, "' not in settings.")
+    return(invisible(list()))
+  }
+
+  files <- list_available_files(parameter_name, s,
+                                 water_body = "Khlong_Nueng",
+                                 verbose = verbose)
+  if (length(files) == 0L) return(invisible(list()))
+
+  message("\nProcessing ", length(files), " Khlong Nueng file(s) for [",
+          parameter_name, "]...")
+
+  map_list <- list()
+
+  for (fp in files) {
+    rinfo <- parse_khlong_filename(fp)
+    if (is.null(rinfo)) next
+
+    r <- tryCatch(terra::rast(fp), error = function(e) {
+      message("Error loading: ", basename(fp), " — ", e$message); NULL
+    })
+    if (is.null(r)) next
+
+    rdata <- list(raster = r, info = rinfo, file_path = fp)
+
+    map <- create_khlong_nueng_map(
+      raster_data    = rdata,
+      parameter_name = parameter_name,
+      unit           = s$unit,
+      min_val        = s$min_val,
+      max_val        = s$max_val,
+      color_palette  = s$color_palette,
+      reverse_colors = s$reverse_colors,
+      verbose        = verbose
+    )
+
+    if (!is.null(map)) {
+      key <- paste("Khlong_Nueng", parameter_name, rinfo$month_name,
+                   rinfo$year, sep = "_")
+      map_list[[key]] <- map
+      print(map)
+
+      if (save_maps) {
+        save_wq_map(
+          map        = map,
+          output_dir = s$output_dir,
+          water_body = "Khlong_Nueng",
+          parameter  = parameter_name,
+          month_abbr = rinfo$month_abbr,
+          year       = rinfo$year
+        )
+      }
+    }
+  }
+
+  message("Finished [", parameter_name, "]: ", length(map_list),
+          " Khlong Nueng map(s) rendered.\n")
+  invisible(map_list)
+}
+```
+
+---
+
+## 4  Usage Examples
+
+### 4.1  Preview a single map
+
+```{r example_single_preview}
+# List available Khlong Nueng Turbidity files
+list_available_files("Turbidity", param_settings[["Turbidity"]],
+                      water_body = "Khlong_Nueng")
+
+# Preview the 1st Khlong Nueng Turbidity file
+# turbidity_preview <- preview_khlong_parameter("Turbidity", file_index = 1)
+# turbidity_preview
+
+# Other parameter previews:
+# tp_preview      <- preview_khlong_parameter("TP",      file_index = 1)
+# do_preview      <- preview_khlong_parameter("DO",      file_index = 1)
+# salinity_preview <- preview_khlong_parameter("Salinity", file_index = 1)
+```
+
+### 4.2  Batch render all monthly maps for one or more parameters
+
+```{r example_batch_render}
+# Render all Khlong Nueng Turbidity maps (display only, no save):
+# turbidity_maps <- batch_render_khlong_parameter("Turbidity", save_maps = FALSE)
+
+# Render and save all DO maps:
+# do_maps <- batch_render_khlong_parameter("DO", save_maps = TRUE)
+
+# Batch across all parameters:
+# all_khlong_maps <- lapply(names(param_settings),
+#                            batch_render_khlong_parameter,
+#                            save_maps = FALSE)
+```
+
+---
+
+## 5  Session Information
+
+```{r session_info}
+sessionInfo()
+```
+
+<!--
+================================================================================
+  END OF 02_Khlong_Nueng_Maps.Rmd
+  Study: Shirodkar et al. (2025) — Remote Sensing of Environment
+  Repository: https://github.com/Abhiagri10/Water_Quality_Mapping
+================================================================================
+-->
