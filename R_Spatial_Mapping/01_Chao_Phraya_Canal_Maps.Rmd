@@ -2,9 +2,9 @@
 title: >
   Near Real-Time Canal WQ Monitoring — Chao Phraya Basin Spatial Maps
 subtitle: >
-  R Spatial Visualization Pipeline: Landsat 8/9 ML-Predicted WQ Maps
+  R Spatial Monitoring and Visualization Pipeline: Landsat 8/9 ML-Predicted WQ Maps
   for the Pathum Thani Province Canal Network, Chao Phraya Basin, Thailand
-  (11 Monitoring Sites, 8 Parameters, 2019–2022)
+  (11 Monitoring Sites, 8 Parameters, June 2024–January 2025)
 author:
   - name: "Abhishek Babuso Shirodkar"
     affiliation: "Water Engineering and Management, Faculty of Civil and
@@ -29,14 +29,14 @@ output:
 ================================================================================
   STUDY REFERENCE
     Shirodkar, A. B., Shanmugam, M., Shrestha, S., Tangdamrongsub, N., &
-    Puno, R. (2025). Near real-time water quality monitoring of tropical canal
-    networks using Landsat 8/9 surface reflectance and machine learning.
+    Puno, R. (2025). Near Real-Time Water Quality Monitoring with High-Resolution
+    Satellite Images and Machine Learning Methods.
     Remote Sensing of Environment. https://doi.org/[assigned upon acceptance]
 
   WORKFLOW POSITION
     GEE_Scripts/ (ML prediction → GeoTIFF monthly average export)
           ↓
-    01_All_Network_Maps.Rmd  [this script]
+    01_Chao_Phraya_Canal_Maps.Rmd  [this script]
           ↓
     Publication-quality spatial WQ compliance maps (PNG/PDF)
 

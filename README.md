@@ -1,6 +1,6 @@
-# Near Real-Time Water Quality Mapping Using Landsat and Random Forest
+# Near Real-Time Water Quality Monitoring Using Landsat and Random Forest
 
-**A GEE & Python Framework**
+**A GEE, Python & R Framework**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Google%20Earth%20Engine-green)](https://earthengine.google.com/)
@@ -50,12 +50,24 @@ Water_Quality_Mapping/
 │       ├── pH_RF_Model_v1.ipynb
 │       └── TP_RF_Model_v1.ipynb
 │
+└── R_Spatial_Mapping/                               # R spatial monitoring maps
+    ├── config_template.R
+    ├── 00_shared_functions.R
+    ├── 01_Chao_Phraya_Canal_Maps.Rmd
+    ├── 02_Khlong_Nueng_Canal_Maps.Rmd
+    └── sample_data/
 └── prediction_csvs/                                    # [Planned] 24 ground-truth prediction CSVs
 ```
 
 **GEE_Scripts/** contains spatial mapping scripts. Each script loads satellite imagery, trains the RF model, runs a monthly prediction pipeline, and visualises results on the GEE map. Export blocks (`Export.image.toDrive()`) are present and commented out by default. Uncomment in the Code Editor when you need GeoTIFF outputs.
 
 **Python_ML_Models/** contains eight Random Forest training notebooks, one per water quality parameter, split into `Optically_Active_WQPs/` and `Optically_Inactive_WQPs/`. All eight follow the same structure: data loading, indices, split, standardization, model training, metrics, and a 1:1 validation plot. These notebooks are scoped to model training and evaluation only; spatial map generation is handled by the GEE scripts.
+
+**R_Spatial_Mapping/** contains two R Markdown notebooks for generating 
+publication-quality spatial WQ monitoring maps from GEE-exported GeoTIFF files.
+Script 01 covers the full Pathum Thani canal network; Script 02 applies a 
+specialized narrow-canal rendering for Khlong Nueng (3× lateral buffer).
+Copy `config_template.R` to `config.R` and fill in your data paths before running.
 
 ---
 
@@ -220,8 +232,8 @@ Satellite Images and Machine Learning Methods [Master's Research Project]. Asian
 **Code repository:**
 
 ```
-Shirodkar, A. (2025). Water Quality Mapping: GEE and Python Framework for
-Landsat-Based Water Quality Estimation [Software]. GitHub.
+Shirodkar, A. (2025). Near Real-Time Water Quality Monitoring — GEE, Python 
+and R Framework for Landsat-Based Water Quality Estimation [Software]. GitHub.
 https://github.com/Abhiagri10/Water_Quality_Mapping
 ```
 

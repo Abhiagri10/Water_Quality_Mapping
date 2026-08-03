@@ -1,10 +1,10 @@
 # R Spatial Mapping — Near Real-Time Canal WQ Monitoring
 
 ## Study
-Cite: Shirodkar, A. B., Shanmugam, M., Shrestha, S., Tangdamrongsub, N., & 
-Puno, R. (2025). Near real-time water quality monitoring of tropical canal 
-networks using Landsat 8/9 surface reflectance and machine learning.
-Remote Sensing of Environment. https://doi.org/[TBD]
+Shirodkar, A. B., Shanmugam, M., Shrestha, S., Tangdamrongsub, N., & 
+Puno, R. (2025). Near Real-Time Water Quality Monitoring with High-Resolution 
+Satellite Images and Machine Learning Methods. Remote Sensing of Environment. 
+https://doi.org/[assigned upon acceptance]
 
 ## Workflow
 GEE_Scripts/ → GeoTIFF exports → R_Spatial_Mapping/ → Publication maps

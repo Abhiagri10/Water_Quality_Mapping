@@ -1,5 +1,5 @@
 # GitHub Setup Guide — Windows Git Bash
-# abshirodkar15/Water_Quality_WQM
+# Abhiagri10/Water_Quality_Mapping
 # Run every command EXACTLY as written. Lines starting with # are comments — skip them.
 
 # ============================================================
@@ -16,12 +16,12 @@
 # STEP 1 — Create the GitHub repo (do this in your browser)
 # ============================================================
 # Go to: https://github.com/new
-#   Repository name : Water_Quality_WQM
+#   Repository name : Water_Quality_Mapping
 #   Description     : GEE mapping scripts — near real-time water quality monitoring, Pathum Thani, Thailand
 #   Visibility      : Public
 #   Initialize      : DO NOT check "Add a README" or ".gitignore" (we supply our own)
 # Click "Create repository"
-# Copy the repo URL shown: https://github.com/abshirodkar15/Water_Quality_WQM.git
+# Copy the repo URL shown: https://github.com/Abhiagri10/Water_Quality_Mapping.git
 
 # ============================================================
 # STEP 2 — Build the local folder structure
@@ -30,8 +30,8 @@
 # Replace C:/Users/YourName/Desktop with your actual path.
 
 cd "C:/Users/YourName/Desktop"
-mkdir Water_Quality_WQM
-cd Water_Quality_WQM
+mkdir Water_Quality_Mapping
+cd Water_Quality_Mapping
 mkdir -p gee_scripts/Optically_Active_WQPs
 mkdir -p gee_scripts/Optically_Inactive_WQPs
 
@@ -40,7 +40,7 @@ mkdir -p gee_scripts/Optically_Inactive_WQPs
 # ============================================================
 # Manually move / copy the repository files:
 #
-#   Water_Quality_WQM/
+#   Water_Quality_Mapping/
 #   ├── README.md
 #   ├── .gitignore
 #   └── gee_scripts/
@@ -80,7 +80,7 @@ Export.image.toDrive blocks commented out; Map.addLayer visualization retained."
 # ============================================================
 # STEP 5 — Connect to GitHub and push
 # ============================================================
-git remote add origin https://github.com/abshirodkar15/Water_Quality_WQM.git
+git remote add origin https://github.com/Abhiagri10/Water_Quality_Mapping.git
 git branch -M main
 git push -u origin main
 # Git Bash will ask for your GitHub username and password.
@@ -94,13 +94,13 @@ git push -u origin main
 git tag -a v1.0.0 -m "v1.0.0 — thesis submission release"
 git push origin v1.0.0
 # Then go to: https://zenodo.org/deposit/new?upload_type=software
-# Connect your GitHub account, select Water_Quality_WQM, select the v1.0.0 release.
+# Connect your GitHub account, select Water_Quality_Mapping, select the v1.0.0 release.
 # Zenodo will mint a DOI. Add it to README.md citation block.
 
 # ============================================================
 # STEP 7 — Verify on GitHub
 # ============================================================
-# Open: https://github.com/abshirodkar15/Water_Quality_WQM
+# Open: https://github.com/Abhiagri10/Water_Quality_Mapping
 # Confirm:
 #   - 10 files visible
 #   - README renders correctly
