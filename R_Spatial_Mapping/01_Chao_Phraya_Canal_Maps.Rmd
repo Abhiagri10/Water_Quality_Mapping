@@ -520,7 +520,7 @@ sessionInfo()
 
 <!--
 ================================================================================
-  END OF 01_All_Network_Maps.Rmd
+  END OF 01_Chao_Phraya_Canal_Maps.Rmd
   Study: Shirodkar et al. (2025) — Remote Sensing of Environment
   Repository: https://github.com/Abhiagri10/Water_Quality_Mapping
 ================================================================================

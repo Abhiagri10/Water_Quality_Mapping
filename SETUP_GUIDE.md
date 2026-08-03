@@ -6,7 +6,7 @@
 # WHAT YOU NEED BEFORE STARTING
 # ============================================================
 # 1. Git Bash installed (https://git-scm.com/downloads)
-# 2. A GitHub account: github.com/abshirodkar15
+# 2. A GitHub account: github.com/Abhiagri10
 # 3. The repository files needed:
 #      README.md, .gitignore
 #      gee_scripts/Optically_Active_WQPs/   (5 x .js)
